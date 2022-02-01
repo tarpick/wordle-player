@@ -79,7 +79,7 @@ mergeWordStats w1 w2 = statsMerged
       { posLetters  = zipWith (\a b -> if a /= ' ' then a else b) (posLetters w2) (posLetters w1)
       , nposLetters = nposLetters w2 ++ nposLetters w1
       , goodLetters = nub $ goodLetters w1 ++ goodLetters w2
-      , badLetters  = badLetters  w1 ++ badLetters w2
+      , badLetters  = nub $ badLetters w1 ++ badLetters w2
       }
 
 exitIfDone :: String -> IO ()
@@ -101,7 +101,7 @@ chooseWord ws = do
     ckBad :: String -> Bool
     ckBad = not . any (`elem` badLetters')
     ckGood :: String -> Bool
-    ckGood w = length goodLetters' == length (group (sort w) `intersect` group (sort goodLetters'))
+    ckGood w = length goodLetters' == length (goodLetters' `intersect` w)
 
 runLoopSt :: StateT WordStats IO ()
 runLoopSt = do
