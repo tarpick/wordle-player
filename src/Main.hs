@@ -80,10 +80,12 @@ chooseWord ws = do
   dict <- getWords
   chooseRandom [ w | w <- filteredDict dict, ckBad w, ckGood w ]
   where
-    nposLetters' = nposLetters ws
-    posLetters'  = posLetters ws
-    goodLetters' = goodLetters ws
-    badLetters'  = badLetters ws
+    WordStats
+      { posLetters  = posLetters'
+      , nposLetters = nposLetters'
+      , goodLetters = goodLetters'
+      , badLetters  = badLetters'
+      } = ws
     dict' x = if null nposLetters' then x else filter (not . anyPosMatch nposLetters') x
     filteredDict x = if null posLetters' then dict' x else filter (posMatch posLetters') (dict' x)
     ckBad :: String -> Bool
