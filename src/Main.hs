@@ -4,6 +4,7 @@ import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Trans.State
 import Data.List
+import Data.Ord
 import System.Exit
 import System.IO
 import System.Random
@@ -12,11 +13,8 @@ import Data.Time.Clock.POSIX
 
 getWords :: IO [String]
 getWords = do
-  words <- readFile "/usr/share/dict/words"
+  words <- readFile "words.txt"
   return [w | w <- lines words, length w == 5, all (`elem` ['a' .. 'z']) w]
-
-freqWords :: [String]
-freqWords = ["aisle","alert","alien","aliso","alist","alite","aloin","alone","alose","alter","altin","altun","alure","anile","anise","anoil","anole","anoli","antes","antre","arent","ariel","ariot","arise","arist","arite","arles","arnut","arose","arsle"]
 
 type GoodLetters = [Char]
 type BadLetters  = [Char]
@@ -29,6 +27,18 @@ chooseRandom lst = do
   let (i, _) = uniformR (0, length lst - 1) (mkStdGen t)
   putStrLn $ "number of possible words = " ++ show (length lst)
   return $ lst !! i
+
+getFirstTry :: IO String
+getFirstTry = do
+  wrds <- getWords
+  let wordcounts  = [ (head c, length c) | c <- group $ sort $ mconcat wrds ]
+      descSort :: [(a, Int)] -> [(a, Int)]
+      descSort    = sortOn (Down . snd)
+      freqLetters = descSort wordcounts
+      scanSet     = fst <$> take 10 freqLetters
+      scores      = descSort [ (w, length (nub $ intersect scanSet w)) | w <- wrds ]
+      candidates  = [ fst w | w <- scores, snd w == 5 ]
+  chooseRandom candidates
 
 posMatch :: String -> String -> Bool
 posMatch [] []   = True
@@ -113,6 +123,6 @@ initWordStats = WordStats "     " [] [] []
 main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
-  firstTry <- chooseRandom freqWords
+  firstTry <- getFirstTry
   putStrLn $ "initial guess: " ++ firstTry ++ "\n"
   void $ runStateT runLoopSt initWordStats
