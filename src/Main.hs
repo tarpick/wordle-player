@@ -21,7 +21,7 @@ freqWords = ["aisle","alert","alien","aliso","alist","alite","aloin","alone","al
 type GoodLetters = [Char]
 type BadLetters  = [Char]
 type PosLetters  = [Char]
-type NPosLetters = [Char]
+type NPosLetters = [[Char]]
 
 chooseRandom :: [String] -> IO String
 chooseRandom lst = do
@@ -38,13 +38,11 @@ posMatch [' '] _ = True
 posMatch (' ':xs) (_:ys) = posMatch xs ys
 posMatch (x:xs) (y:ys) = x == y && posMatch xs ys
 
-anyPosMatch :: String -> String -> Bool
-anyPosMatch [] []   = False
-anyPosMatch [] _    = False
-anyPosMatch _  []   = True
-anyPosMatch [' '] _ = False
-anyPosMatch (' ':xs) (_:ys) = anyPosMatch xs ys
-anyPosMatch (x:xs) (y:ys) = x == y || anyPosMatch xs ys
+anyPosMatch :: [String] -> String -> Bool
+anyPosMatch posList key = or cklst
+  where
+    posns = transpose posList
+    cklst = uncurry elem <$> zip key posns
 
 data WordStats = WordStats
   { posLetters  :: PosLetters
@@ -55,7 +53,7 @@ data WordStats = WordStats
 
 resultToWordStats :: String -> WordStats
 resultToWordStats input =
-  WordStats posLetters nposLetters goodLetters badLetters
+  WordStats posLetters [nposLetters] goodLetters badLetters
   where
     decoded     = chunksOf 2 input
     posLetters  = (\[x,y] -> if x == 'G' then y else ' ') <$> decoded
@@ -69,7 +67,7 @@ mergeWordStats w1 w2 = statsMerged
   where
     statsMerged = WordStats
       { posLetters  = zipWith (\a b -> if a /= ' ' then a else b) (posLetters w2) (posLetters w1)
-      , nposLetters = zipWith (\a b -> if a /= ' ' then a else b) (nposLetters w2) (nposLetters w1)
+      , nposLetters = nposLetters w2 ++ nposLetters w1
       , goodLetters = nub $ goodLetters w1 ++ goodLetters w2
       , badLetters  = badLetters  w1 ++ badLetters w2
       }
@@ -108,7 +106,7 @@ runLoopSt = do
   runLoopSt
 
 initWordStats :: WordStats
-initWordStats = WordStats "     " "     " [] []
+initWordStats = WordStats "     " [] [] []
 
 main :: IO ()
 main = do
