@@ -3,6 +3,7 @@ module Main where
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Trans.State
+import Data.Char
 import Data.List
 import Data.Ord
 import System.Exit
@@ -61,15 +62,16 @@ data WordStats = WordStats
   , badLetters  :: BadLetters
   } deriving (Eq, Show)
 
-resultToWordStats :: String -> WordStats
-resultToWordStats input =
+resultToWordStats :: String -> String -> WordStats
+resultToWordStats score tryWord =
   WordStats posLetters [nposLetters] goodLetters badLetters
   where
-    decoded     = chunksOf 2 input
-    posLetters  = (\[x,y] -> if x == 'G' then y else ' ') <$> decoded
-    nposLetters = (\[x,y] -> if x `elem` "BY" then y else ' ') <$> decoded
-    goodLetters = mconcat $ tail <$> filter ((`elem` "GY") . head) decoded
-    badLetters' = mconcat $ tail <$> filter ((== 'B') . head) decoded
+    score'      = toUpper <$> score
+    decoded     = zip score' tryWord
+    posLetters  = (\(x,y) -> if x == 'G' then y else ' ') <$> decoded
+    nposLetters = (\(x,y) -> if x `elem` "BY" then y else ' ') <$> decoded
+    goodLetters = snd <$> filter ((`elem` "GY") . fst) decoded
+    badLetters' = snd <$> filter ((== 'B') . fst) decoded
     badLetters  = filter (`notElem` goodLetters) badLetters'
 
 mergeWordStats :: WordStats -> WordStats -> WordStats
@@ -103,19 +105,20 @@ chooseWord ws = do
     ckGood :: String -> Bool
     ckGood w = length goodLetters' == length (goodLetters' `intersect` w)
 
-runLoopSt :: StateT WordStats IO ()
-runLoopSt = do
-  liftIO $ putStr "enter result: "
+runLoopSt :: String -> StateT WordStats IO ()
+runLoopSt lastTry = do
+  liftIO $ putStr "enter result:  "
   result <- liftIO getLine
   liftIO $ exitIfDone result
-  let stats = resultToWordStats result
+  liftIO $ putStrLn []
+  let stats = resultToWordStats result lastTry
   modify (mergeWordStats stats)
   newStats <- get
   --liftIO $ print newStats
   guess <- liftIO $ chooseWord newStats
   liftIO $ putStr "\ncurrent guess: "
-  liftIO $ putStrLn $ guess ++ "\n"
-  runLoopSt
+  liftIO $ putStrLn guess
+  runLoopSt guess
 
 initWordStats :: WordStats
 initWordStats = WordStats "     " [] [] []
@@ -124,5 +127,5 @@ main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
   firstTry <- getFirstTry
-  putStrLn $ "initial guess: " ++ firstTry ++ "\n"
-  void $ runStateT runLoopSt initWordStats
+  putStrLn $ "initial guess: " ++ firstTry
+  void $ runStateT (runLoopSt firstTry) initWordStats
