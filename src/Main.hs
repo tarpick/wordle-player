@@ -105,19 +105,27 @@ chooseWord ws = do
     ckGood :: String -> Bool
     ckGood w = length goodLetters' == length (goodLetters' `intersect` w)
 
+getGuessResultOrExit :: IO String
+getGuessResultOrExit = do
+  putStr "enter result:  "
+  result <- getLine
+  exitIfDone result
+  putStrLn []
+  return result
+
+outputCurrentGuess :: WordStats -> IO String
+outputCurrentGuess ws = do
+  -- print ws
+  guess <- chooseWord ws
+  putStrLn $ "\ncurrent guess: " ++ guess
+  return guess
+
 runLoopSt :: String -> StateT WordStats IO ()
 runLoopSt lastTry = do
-  liftIO $ putStr "enter result:  "
-  result <- liftIO getLine
-  liftIO $ exitIfDone result
-  liftIO $ putStrLn []
-  let stats = resultToWordStats result lastTry
-  modify (mergeWordStats stats)
+  result <- liftIO getGuessResultOrExit
+  modify (mergeWordStats $ resultToWordStats result lastTry)
   newStats <- get
-  --liftIO $ print newStats
-  guess <- liftIO $ chooseWord newStats
-  liftIO $ putStr "\ncurrent guess: "
-  liftIO $ putStrLn guess
+  guess <- liftIO $ outputCurrentGuess newStats
   runLoopSt guess
 
 initWordStats :: WordStats
