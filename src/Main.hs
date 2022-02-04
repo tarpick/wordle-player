@@ -147,11 +147,9 @@ getGuessResultOrExit = do
   return result
 
 runLoopSt :: StateT WordleState IO ()
-runLoopSt = do
-  result <- liftIO getGuessResultOrExit
-  updateGuessResult result
+runLoopSt = forever $ do
+  updateGuessResult =<< liftIO getGuessResultOrExit
   updateWordleGuess
-  runLoopSt
 
 initWordleState :: String -> WordleState
 initWordleState firstGuess = WordleState {
