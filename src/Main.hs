@@ -42,12 +42,9 @@ getFirstTry = do
   chooseRandom candidates
 
 posMatch :: String -> String -> Bool
-posMatch [] []   = True
-posMatch [] _    = False
-posMatch _ []    = False
-posMatch [' '] _ = True
-posMatch (' ':xs) (_:ys) = posMatch xs ys
-posMatch (x:xs) (y:ys) = x == y && posMatch xs ys
+posMatch key wrd = and $ zipWith matches key wrd
+  where
+    matches a b = (a == ' ') || a == b
 
 anyPosMatch :: [String] -> String -> Bool
 anyPosMatch posList key = or cklst
