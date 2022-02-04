@@ -12,15 +12,15 @@ import System.Random
 import Data.List.Split
 import Data.Time.Clock.POSIX
 
-getWords :: IO [String]
-getWords = do
-  words <- readFile "words.txt"
-  return [w | w <- lines words, length w == 5, all (`elem` ['a' .. 'z']) w]
-
 type GoodLetters = [Char]
 type BadLetters  = [Char]
 type PosLetters  = [Char]
 type NPosLetters = [[Char]]
+
+getWords :: IO [String]
+getWords = do
+  words <- readFile "words.txt"
+  return [w | w <- lines words, length w == 5, all (`elem` ['a' .. 'z']) w]
 
 chooseRandom :: [String] -> IO String
 chooseRandom lst = do
@@ -82,22 +82,21 @@ mergeWordStats w1 w2 = statsMerged
       }
 
 chooseWord :: WordStats -> IO String
-chooseWord ws = do
-  dict <- getWords
-  chooseRandom [ w | w <- filteredDict dict, ckBad w, ckGood w ]
-  where
-    WordStats
-      { posLetters  = posLetters'
-      , nposLetters = nposLetters'
-      , goodLetters = goodLetters'
-      , badLetters  = badLetters'
-      } = ws
-    dict' x = if null nposLetters' then x else filter (not . anyPosMatch nposLetters') x
-    filteredDict x = if null posLetters' then dict' x else filter (posMatch posLetters') (dict' x)
-    ckBad :: String -> Bool
-    ckBad = not . any (`elem` badLetters')
-    ckGood :: String -> Bool
-    ckGood w = length goodLetters' == length (goodLetters' `intersect` w)
+chooseWord WordStats
+  { posLetters  = posLetters
+  , nposLetters = nposLetters
+  , goodLetters = goodLetters
+  , badLetters  = badLetters
+  } = do
+    dict <- getWords
+    chooseRandom [ w | w <- filteredDict dict, ckBad w, ckGood w ]
+    where
+      dict x = if null nposLetters then x else filter (not . anyPosMatch nposLetters) x
+      filteredDict x = if null posLetters then dict x else filter (posMatch posLetters) (dict x)
+      ckBad :: String -> Bool
+      ckBad = not . any (`elem` badLetters)
+      ckGood :: String -> Bool
+      ckGood w = length goodLetters == length (goodLetters `intersect` w)
 
 data WordleState = WordleState
   { currentGuess :: String
