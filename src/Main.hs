@@ -44,7 +44,7 @@ getFirstTry = do
 posMatch :: String -> String -> Bool
 posMatch key wrd = and $ zipWith matches key wrd
   where
-    matches a b = (a == ' ') || a == b
+    matches a b = a == ' ' || a == b
 
 anyPosMatch :: [String] -> String -> Bool
 anyPosMatch posList key = or cklst
