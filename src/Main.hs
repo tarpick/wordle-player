@@ -84,9 +84,6 @@ mergeWordStats w1 w2 = statsMerged
       , badLetters  = nub $ badLetters w1 ++ badLetters w2
       }
 
-exitIfDone :: String -> IO ()
-exitIfDone s = when (null s) exitSuccess
-
 chooseWord :: WordStats -> IO String
 chooseWord ws = do
   dict <- getWords
@@ -105,6 +102,42 @@ chooseWord ws = do
     ckGood :: String -> Bool
     ckGood w = length goodLetters' == length (goodLetters' `intersect` w)
 
+data WordleState = WordleState
+  { currentGuess :: String
+  , guessResult  :: String
+  , wordStats    :: WordStats
+  } deriving (Eq, Show)
+
+updateWordleWordStats :: StateT WordleState IO ()
+updateWordleWordStats = do
+  WordleState {
+    currentGuess = guess
+  , guessResult  = result
+  , wordStats    = oldStats
+  } <- get
+  let mergedStats = mergeWordStats (resultToWordStats result guess) oldStats
+    in
+      modify (\ws -> ws { wordStats = mergedStats })
+
+updateCurrentGuess :: StateT WordleState IO ()
+updateCurrentGuess = do
+  wstats <- gets wordStats
+  -- liftIO $ print wstats
+  newGuess <- liftIO $ do
+    guess <- chooseWord wstats
+    putStrLn $ "\ncurrent guess: " ++ guess
+    return guess
+  modify (\ws -> ws { currentGuess = newGuess })
+
+updateGuessResult :: String -> StateT WordleState IO ()
+updateGuessResult res = do
+  modify (\ws -> ws { guessResult = res })
+
+updateWordleGuess :: StateT WordleState IO ()
+updateWordleGuess = do
+  updateWordleWordStats
+  updateCurrentGuess
+
 getGuessResultOrExit :: IO String
 getGuessResultOrExit = do
   putStr "enter result:  "
@@ -113,27 +146,26 @@ getGuessResultOrExit = do
   putStrLn []
   return result
 
-outputCurrentGuess :: WordStats -> IO String
-outputCurrentGuess ws = do
-  -- print ws
-  guess <- chooseWord ws
-  putStrLn $ "\ncurrent guess: " ++ guess
-  return guess
-
-runLoopSt :: String -> StateT WordStats IO ()
-runLoopSt lastTry = do
+runLoopSt :: StateT WordleState IO ()
+runLoopSt = do
   result <- liftIO getGuessResultOrExit
-  modify (mergeWordStats $ resultToWordStats result lastTry)
-  newStats <- get
-  guess <- liftIO $ outputCurrentGuess newStats
-  runLoopSt guess
+  updateGuessResult result
+  updateWordleGuess
+  runLoopSt
 
-initWordStats :: WordStats
-initWordStats = WordStats "     " [] [] []
+initWordleState :: String -> WordleState
+initWordleState firstGuess = WordleState {
+    currentGuess = firstGuess
+  , guessResult  = ""
+  , wordStats    = WordStats "     " [] "" ""
+  }
+
+exitIfDone :: String -> IO ()
+exitIfDone s = when (null s) exitSuccess
 
 main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
   firstTry <- getFirstTry
   putStrLn $ "initial guess: " ++ firstTry
-  void $ runStateT (runLoopSt firstTry) initWordStats
+  void $ runStateT runLoopSt (initWordleState firstTry)
