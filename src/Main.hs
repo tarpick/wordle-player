@@ -129,14 +129,13 @@ updateCurrentGuess = do
     return guess
   modify (\ws -> ws { currentGuess = newGuess })
 
-updateGuessResult :: String -> StateT WordleState IO ()
-updateGuessResult res = do
-  modify (\ws -> ws { guessResult = res })
-
 updateWordleGuess :: StateT WordleState IO ()
 updateWordleGuess = do
   updateWordleWordStats
   updateCurrentGuess
+
+updateGuessResult :: String -> StateT WordleState IO ()
+updateGuessResult res = modify (\ws -> ws { guessResult = res })
 
 getGuessResultOrExit :: IO String
 getGuessResultOrExit = do
