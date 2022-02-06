@@ -23,6 +23,7 @@ getWords = do
   return [w | w <- lines words, length w == 5, all (`elem` ['a' .. 'z']) w]
 
 chooseRandom :: [String] -> IO String
+chooseRandom []  = error "fatal: no more possible words available!"
 chooseRandom lst = do
   t <- (fromIntegral . round <$> getPOSIXTime) :: IO Int
   let (i, _) = uniformR (0, length lst - 1) (mkStdGen t)
